@@ -2,15 +2,23 @@ import validators
 import os
 import time
 import csv
+import requests as req
+import json
 
 
 class contactBook(dict):
-    def __missing__(self, key):
+    def missing(self, key):
         value = self[key] = type(self)()
         return value
 
 
 contacts = contactBook()
+r = req.get('http://demo7130536.mockable.io/final-contacts-100')
+data =json.loads(r.text)
+for key, lcontact in data.items():
+  contacts[key] = lcontact
+  
+
 exit = False
 
 
@@ -30,18 +38,19 @@ def validate(contact):
     if not contact["telefono"].isdigit() or len(contact["telefono"]) != 8:
         fail["telefono"] = contact["telefono"]
 
-    if not validators.email(contact["correo"]):
+    if not validators.email(contact["email"]):
         fail["telefono"] = contact["telefono"]
 
     return fail
 
-    def crearContacto():
 
-     print("Ingrese el contacto\n")
-     contact = {
+def crearContacto():
+
+    print("Ingrese el contacto\n")
+    contact = {
         "nombre": input("nombre: ").lower(),
         "telefono": input("telefono: "),
-        "correo": input("correo: "),
+        "email": input("email: "),
         "empresa": input("empresa: "),
         "extra": input("extra: ")
 
@@ -66,6 +75,7 @@ def validate(contact):
 def showPerson(person):
     for name, data in person.items():
         print(f'{name}: ')
+        print(data)
         for key, value in data.items():
             print(f'\t{key}: {value}')
 
@@ -82,12 +92,23 @@ def listarContactos():
             count += 1
             cts.append({name: data})
 
-    select = input("Ver contacto: ").lower()
-    if len(select):
+    select = input("Ver contacto: ")
+    if select.isdigit():
         person = cts[int(select) - 1]
         showPerson(person)
+
+    else:
+        key = select[:1].upper()
+        if contacts[key][select]:
+            person = contacts[key][select]
+            showPerson({select: person})
+        else:
+            print("contacto no encontrado")
+
+  
         
-        
+
+
 def buscarContacto():
     name = input("buscar: ")
     values = contacts.values()
@@ -99,8 +120,8 @@ def buscarContacto():
 
     def match(fullname):
         return name.lower() in fullname.lower()
-
-    persons = filter(match, names)
+    
+    persons = list(filter(match, names))
     if len(persons):
         print("Resultados: ")
         for person in persons:
@@ -124,7 +145,7 @@ def eliminarContacto():
             count += 1
             cts.append(name)
 
-    select = input("Eliminar contact contacto: ").lower()
+    select = input("Eliminar contact contacto: ")
     if select.isdigit():
         key = int(select) - 1
         del cts[key]
@@ -144,6 +165,7 @@ def eliminarContacto():
         else:
             print("contacto no encontrado")
 
+
 def callContact():
     letters = contacts.keys()
     cts = []
@@ -156,18 +178,18 @@ def callContact():
             count += 1
             cts.append(data)
 
-    select = input("contacto? ").lower()
+    select = input("contacto? ")
     if select.isdigit():
         person = cts[int(select) - 1]
         time.sleep(3)
-        print(f'Lamando a "{person["nombre"]}" al {person["telefono"]}')
+        print(f'Lamando a "{select}" al {person["telefono"]}')
 
     else:
         key = select[:1].upper()
         if contacts[key][select]:
             person = contacts[key][select]
             time.sleep(3)
-            print(f'Lamando a "{person["nombre"]}" al {person["telefono"]}')
+            print(f'Lamando a "{select}" al {person["telefono"]}')
         else:
             print("contacto no encontrado\n")
 
@@ -184,12 +206,18 @@ def SendMessage():
             count += 1
             cts.append(data)
 
-    select = input("contacto? ").lower()
+    select = input("contacto? ")
     message = input("\nMensaje: ")
     if select.isdigit():
         person = cts[int(select) - 1]
-        print(
-            f'Hola "{person["nombre"]}" {person["telefono"]}\n\t > {message}')
+        print(f'Hola "{select}" {person["telefono"]}\n\t > {message}')
+    else:
+        key = select[:1].upper()
+        if contacts[key][select]:
+            person = contacts[key][select]
+            print(f'Hola "{select}" {person["telefono"]}\n\t > {message}')
+        else:
+            print("contacto no encontrado")
 
 
 def SendMail():
@@ -204,20 +232,21 @@ def SendMail():
             count += 1
             cts.append(data)
 
-    select = input("contacto? ").lower()
+    select = input("contacto? ")
     subject = input("\nSubject: ")
     message = input("Mensaje: ")
     if select.isdigit():
         person = cts[int(select) - 1]
         print(
-            f'Enviando correo a "{person["nombre"]}" {person["correo"]}\n\t > Subject: {subject} \n\t > Message: {message}')
+            f'Enviando correo a "{select}" {person["email"]}\n\t > Subject: {subject} \n\t > Message: {message}')
 
     else:
         key = select[:1].upper()
         if contacts[key][select]:
             person = contacts[key][select]
+            print(person)
             print(
-                f'Enviando correo a "{person["nombre"]}" {person["correo"]}\n\t > Subject: {subject} \n\t > Message: {message}')
+                f'Enviando correo a "{select}" {person["email"]}\n\t > Subject: {subject} \n\t > Message: {message}')
         else:
             print("contacto no encontrado\n")
 
@@ -225,7 +254,7 @@ def SendMail():
 def exportContacts():
     with open('contacts.csv', 'w', newline='') as file:
         writer = csv.writer(file)
-        writer.writerow(["nombre", "telefono", "correo", "empresa", "extra"])
+        writer.writerow(["nombre", "telefono", "email", "empresa", "extra"])
         for letter, persons in contacts.items():
             for person in persons:
                 writer.writerow(list(persons[person].values()))
@@ -286,4 +315,3 @@ while not exit:
     clear()
     option["pointer"]()
     wait()
-    
